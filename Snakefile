@@ -28,12 +28,13 @@ rule all:
 ###################################################
 rule seqkit_stats_raw:
     input:
-        expand("{raw_dir}/{sample}_R1.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES)
+        R1 = expand("{raw_dir}/{sample}_R1.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES),
+        R2 = expand("{raw_dir}/{sample}_R2.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES)
     output:
         "results/seqkit_stats_raw.txt"
     shell:
         """
-        seqkit stats {RAW_DIR}/*.fastq.gz > {output}
+        seqkit stats {input.R1} {input.R2} > {output}
         """
 
 
@@ -66,13 +67,13 @@ rule cutadapt:
 ###################################################
 rule seqkit_stats_cutadapt:
     input:
-        expand("results/trimmed/{sample}_R1.cut.fastq.gz", sample=SAMPLES)
-        expand("results/trimmed/{sample}_R2.cut.fastq.gz", sample=SAMPLES)
+        R1 = expand("results/trimmed/{sample}_R1.cut.fastq.gz", sample=SAMPLES),
+        R2 = expand("results/trimmed/{sample}_R2.cut.fastq.gz", sample=SAMPLES)
     output:
         "results/seqkit_stats_post_cutadapt.txt"
     shell:
         """
-        seqkit stats {input} > {output}
+        seqkit stats {input.R1} {input.R2} > {output}
         """
 
 
