@@ -76,7 +76,7 @@ rule seqkit_stats_cutadapt:
 
 
 ###################################################
-# 4. FILTER BY LENGTH (min 150 bp)
+# 4. LENGTH FILTER (via cutadapt)
 ###################################################
 rule length_filter:
     input:
@@ -89,10 +89,11 @@ rule length_filter:
         minlen=config["cutadapt"]["min_length"]
     shell:
         """
-        seqkit seq -m {params.minlen} {input.R1} > {output.R1}
-        seqkit seq -m {params.minlen} {input.R2} > {output.R2}
+        cutadapt \
+        --minimum-length {params.minlen} \
+        -o {output.R1} -p {output.R2} \
+        {input.R1} {input.R2}
         """
-
 
 ###################################################
 # 5. STATS FINAL
