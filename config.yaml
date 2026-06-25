@@ -1,0 +1,8 @@
+raw_dir: "raw"
+results_dir: "results"
+trimmed_dir: "results/trimmed"
+
+cutadapt:
+  fwd_primer: CCTACGGGNGGCWGCAG
+  rev_primer: GACTACHVGGGTATCTAATCC
+  min_length: 150
