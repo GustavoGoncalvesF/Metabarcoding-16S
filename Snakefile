@@ -60,7 +60,7 @@ rule fastqc_raw:
 # 3. CUTADAPT (remove primers)
 ###################################################
 rule cutadapt:
-        input:
+    input:
         R1=f"{RAW_DIR}/{{sample}}_R1.fastq.gz",
         R2=f"{RAW_DIR}/{{sample}}_R2.fastq.gz"
     output:
