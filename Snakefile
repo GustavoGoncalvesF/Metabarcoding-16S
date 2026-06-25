@@ -102,10 +102,11 @@ rule length_filter:
 ###################################################
 rule seqkit_stats_final:
     input:
-        expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES)
+        R1 = expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
+        R2 = expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES)
     output:
         "results/seqkit_stats_post_filter.txt"
     shell:
         """
-        seqkit stats results/trimmed/*_final.fastq.gz > {output}
+        seqkit stats {input.R1} {input.R2} > {output}
         """
