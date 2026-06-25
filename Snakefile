@@ -36,7 +36,7 @@ rule seqkit_stats_raw:
         R1 = expand("{raw_dir}/{sample}_R1.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES),
         R2 = expand("{raw_dir}/{sample}_R2.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES)
     output:
-        "results/stats/seqkit_stats_raw.txt"
+           "results/stats/seqkit_stats_raw.txt"
     shell:
         """
         seqkit stats {input.R1} {input.R2} > {output}
@@ -59,7 +59,7 @@ rule fastqc_raw:
 ###################################################
 # 3. CUTADAPT (remove primers)
 ###################################################
-    rule cutadapt:
+rule cutadapt:
         input:
         R1=f"{RAW_DIR}/{{sample}}_R1.fastq.gz",
         R2=f"{RAW_DIR}/{{sample}}_R2.fastq.gz"
