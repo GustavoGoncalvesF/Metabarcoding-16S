@@ -67,11 +67,12 @@ rule cutadapt:
 rule seqkit_stats_cutadapt:
     input:
         expand("results/trimmed/{sample}_R1.cut.fastq.gz", sample=SAMPLES)
+        expand("results/trimmed/{sample}_R2.cut.fastq.gz", sample=SAMPLES)
     output:
         "results/seqkit_stats_post_cutadapt.txt"
     shell:
         """
-        seqkit stats results/trimmed/*_cut.fastq.gz > {output}
+        seqkit stats {input} > {output}
         """
 
 
