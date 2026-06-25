@@ -14,9 +14,9 @@ SAMPLES = sorted([
 rule all:
     input:
         # stats
-        "results/seqkit_stats_raw.txt",
-        "results/seqkit_stats_post_cutadapt.txt",
-        "results/seqkit_stats_post_filter.txt",
+        "results/stats/seqkit_stats_raw.txt",
+        "results/stats/seqkit_stats_post_cutadapt.txt",
+        "results/stats/seqkit_stats_post_filter.txt",
 
         # outputs finais
         expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
@@ -31,7 +31,7 @@ rule seqkit_stats_raw:
         R1 = expand("{raw_dir}/{sample}_R1.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES),
         R2 = expand("{raw_dir}/{sample}_R2.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES)
     output:
-        "results/seqkit_stats_raw.txt"
+        "results/stats/seqkit_stats_raw.txt"
     shell:
         """
         seqkit stats {input.R1} {input.R2} > {output}
@@ -70,7 +70,7 @@ rule seqkit_stats_cutadapt:
         R1 = expand("results/trimmed/{sample}_R1.cut.fastq.gz", sample=SAMPLES),
         R2 = expand("results/trimmed/{sample}_R2.cut.fastq.gz", sample=SAMPLES)
     output:
-        "results/seqkit_stats_post_cutadapt.txt"
+        "results/stats/seqkit_stats_post_cutadapt.txt"
     shell:
         """
         seqkit stats {input.R1} {input.R2} > {output}
@@ -105,7 +105,7 @@ rule seqkit_stats_final:
         R1 = expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
         R2 = expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES)
     output:
-        "results/seqkit_stats_post_filter.txt"
+        "results/stats/seqkit_stats_post_filter.txt"
     shell:
         """
         seqkit stats {input.R1} {input.R2} > {output}
