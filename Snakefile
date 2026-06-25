@@ -22,6 +22,11 @@ rule all:
         expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
         expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES)
 
+rule fastqc_all:
+    input:
+        expand("results/fastqc_raw/{sample}_{read}_fastqc.html",
+               sample=SAMPLES,
+               read=["R1","R2"])
 
 ###################################################
 # 1. STATS RAW
@@ -37,12 +42,25 @@ rule seqkit_stats_raw:
         seqkit stats {input.R1} {input.R2} > {output}
         """
 
+###################################################
+# 2. RUN RAW FASTQC
+###################################################
+rule fastqc_raw:
+    input:
+        "{raw_dir}/{sample}_{read}.fastq.gz"
+    output:
+        html="results/fastqc_raw/{sample}_{read}_fastqc.html",
+        zip="results/fastqc_raw/{sample}_{read}_fastqc.zip"
+    shell:
+        """
+        fastqc {input} -o results/fastqc_raw
+        """
 
 ###################################################
-# 2. CUTADAPT (remove primers)
+# 3. CUTADAPT (remove primers)
 ###################################################
-rule cutadapt:
-    input:
+    rule cutadapt:
+        input:
         R1=f"{RAW_DIR}/{{sample}}_R1.fastq.gz",
         R2=f"{RAW_DIR}/{{sample}}_R2.fastq.gz"
     output:
@@ -63,7 +81,7 @@ rule cutadapt:
 
 
 ###################################################
-# 3. STATS POST CUTADAPT
+# 4. STATS POST CUTADAPT
 ###################################################
 rule seqkit_stats_cutadapt:
     input:
@@ -78,7 +96,7 @@ rule seqkit_stats_cutadapt:
 
 
 ###################################################
-# 4. LENGTH FILTER (via cutadapt)
+# 5. LENGTH FILTER (via cutadapt)
 ###################################################
 rule length_filter:
     input:
@@ -98,7 +116,7 @@ rule length_filter:
         """
 
 ###################################################
-# 5. STATS FINAL
+# 6. STATS FINAL
 ###################################################
 rule seqkit_stats_final:
     input:
@@ -109,4 +127,17 @@ rule seqkit_stats_final:
     shell:
         """
         seqkit stats {input.R1} {input.R2} > {output}
+        """
+###################################################
+# . RUN FILTERED FASTQC
+###################################################
+rule fastqc_filtered:
+    input:
+        "results/trimmed/{sample}_{read}.final.fastq.gz"
+    output:
+        html="results/fastqc_filtered/{sample}_{read}_filtered_fastqc.html",
+        zip="results/fastqc_filtered/{sample}_{read}_filtered_fastqc.zip"
+    shell:
+        """
+        fastqc {input} -o results/fastqc_filtered
         """
