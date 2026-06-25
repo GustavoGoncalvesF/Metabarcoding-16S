@@ -1,0 +1,67 @@
+############################
+# RAW DATA (FASTQ / FASTQ.GZ)
+############################
+raw/
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+
+############################
+# INTERMEDIATE FILES
+############################
+trimmed/
+filtered/
+cleaned/
+intermediate/
+tmp/
+
+############################
+# ALIGNMENT / BIOINFO OUTPUTS
+############################
+*.bam
+*.sam
+*.bai
+*.bed
+*.vcf
+
+############################
+# DADA2 / R OUTPUTS
+############################
+*.rds
+*.RData
+*.Rhistory
+*.csv
+*.tsv
+dada2_output/
+taxonomy/
+phyloseq/
+
+############################
+# FASTQC / MULTIQC
+############################
+fastqc_out/
+fastqc-trimmed_out/
+multiqc_report/
+
+############################
+# LOGS
+############################
+*.log
+logs/
+snakemake.log
+.snakemake/
+
+############################
+# SYSTEM / EDITORS
+############################
+.DS_Store
+*.swp
+*.swo
+*~
+
+############################
+# OPTIONAL: LARGE REPORTS
+############################
+results/
+
