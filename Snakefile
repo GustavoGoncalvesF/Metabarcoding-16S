@@ -53,7 +53,7 @@ rule seqkit_stats_raw:
 ###################################################
 rule fastqc_raw:
     input:
-         RAW_DIR + "/{sample}_{read}.fastq.gz"
+        expand("{raw_dir}/{sample}_{read}.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES, read=["R1", "R2"])
     output:
         html="results/fastqc/raw/{sample}_{read}_fastqc.html",
         zip="results/fastqc/raw/{sample}_{read}_fastqc.zip"
