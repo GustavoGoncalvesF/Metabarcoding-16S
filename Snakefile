@@ -141,8 +141,8 @@ rule fastqc_filtered:
     input:
         "results/trimmed/{sample}_{read}.final.fastq.gz"
     output:
-        html="results/fastqc/filtered/{sample}_{read}_filtered_fastqc.html",
-        zip="results/fastqc/filtered/{sample}_{read}_filtered_fastqc.zip"
+        html="results/fastqc/filtered/{sample}_{read}_fastqc.html",
+        zip="results/fastqc/filtered/{sample}_{read}_fastqc.zip"
     shell:
         """
         fastqc {input} -o results/fastqc/filtered
