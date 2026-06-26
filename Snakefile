@@ -21,9 +21,9 @@ rule all:
         # outputs finais
         expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
         expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES),
-        expand("results/fastqc_raw/{sample}_{read}_fastqc.html", sample=SAMPLES)
-        expand("results/fastqc_raw/{sample}_{read}_fastqc.zip", sample=SAMPLES)
-        expand("results/fastqc_filtered/{sample}_{read}_fastqc.html", sample=SAMPLES)
+        expand("results/fastqc_raw/{sample}_{read}_fastqc.html", sample=SAMPLES),
+        expand("results/fastqc_raw/{sample}_{read}_fastqc.zip", sample=SAMPLES),
+        expand("results/fastqc_filtered/{sample}_{read}_fastqc.html", sample=SAMPLES),
         expand("results/fastqc_filtered/{sample}_{read}_fastqc.zip", sample=SAMPLES)
 
 rule fastqc_all:
