@@ -6,3 +6,4 @@ cutadapt:
   fwd_primer: CCTACGGGNGGCWGCAG
   rev_primer: GACTACHVGGGTATCTAATCC
   min_length: 150
+  threads: 1

@@ -74,10 +74,12 @@ rule cutadapt:
         R2="results/trimmed/{sample}_R2.cut.fastq.gz"
     params:
         fwd=config["cutadapt"]["fwd_primer"],
-        rev=config["cutadapt"]["rev_primer"]
+        rev=config["cutadapt"]["rev_primer"],
+        threads=config["cutadapt"]["threads"]
     shell:
         """
         cutadapt \
+        -j {threads} \
         -g {params.fwd} \
         -G {params.rev} \
         --discard-untrimmed \
@@ -113,9 +115,11 @@ rule length_filter:
         R2="results/trimmed/{sample}_R2.final.fastq.gz"
     params:
         minlen=config["cutadapt"]["min_length"]
+        threads=config["cutadapt"]["threads"]
     shell:
         """
         cutadapt \
+        -j {threads} \
         --minimum-length {params.minlen} \
         -o {output.R1} -p {output.R2} \
         {input.R1} {input.R2}
