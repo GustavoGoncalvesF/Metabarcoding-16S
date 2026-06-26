@@ -21,16 +21,18 @@ rule all:
         # outputs finais
         expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
         expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES),
-        expand("results/fastqc_raw/{sample}_{read}_fastqc.html", sample=SAMPLES),
-        expand("results/fastqc_raw/{sample}_{read}_fastqc.zip", sample=SAMPLES),
-        expand("results/fastqc_filtered/{sample}_{read}_fastqc.html", sample=SAMPLES),
-        expand("results/fastqc_filtered/{sample}_{read}_fastqc.zip", sample=SAMPLES)
-
-rule fastqc_all:
-    input:
-        expand("results/fastqc_raw/{sample}_{read}_fastqc.html",
-               sample=SAMPLES,
-               read=["R1","R2"])
+        expand("results/fastqc/raw/{sample}_{read}_fastqc.html",
+                sample=SAMPLES,
+                read=["R1", "R2"]),
+        expand("results/fastqc/raw/{sample}_{read}_fastqc.zip",
+                sample=SAMPLES,
+                read=["R1", "R2"]),
+        expand("results/fastqc/filtered/{sample}_{read}_fastqc.html",
+                sample=SAMPLES,
+                read=["R1", "R2"]),
+        expand("results/fastqc/filtered/{sample}_{read}_fastqc.zip",
+                sample=SAMPLES,
+                read=["R1", "R2"])
 
 ###################################################
 # 1. STATS RAW
@@ -51,13 +53,13 @@ rule seqkit_stats_raw:
 ###################################################
 rule fastqc_raw:
     input:
-        "{raw_dir}/{sample}_{read}.fastq.gz"
+         RAW_DIR + "/{sample}_{read}.fastq.gz"
     output:
-        html="results/fastqc_raw/{sample}_{read}_fastqc.html",
-        zip="results/fastqc_raw/{sample}_{read}_fastqc.zip"
+        html="results/fastqc/raw/{sample}_{read}_fastqc.html",
+        zip="results/fastqc/raw/{sample}_{read}_fastqc.zip"
     shell:
         """
-        fastqc {input} -o results/fastqc_raw
+        fastqc {input} -o results/fastqc/raw
         """
 
 ###################################################
@@ -133,15 +135,15 @@ rule seqkit_stats_final:
         seqkit stats {input.R1} {input.R2} > {output}
         """
 ###################################################
-# . RUN FILTERED FASTQC
+# 7. RUN FILTERED FASTQC
 ###################################################
 rule fastqc_filtered:
     input:
         "results/trimmed/{sample}_{read}.final.fastq.gz"
     output:
-        html="results/fastqc_filtered/{sample}_{read}_filtered_fastqc.html",
-        zip="results/fastqc_filtered/{sample}_{read}_filtered_fastqc.zip"
+        html="results/fastqc/filtered/{sample}_{read}_filtered_fastqc.html",
+        zip="results/fastqc/filtered/{sample}_{read}_filtered_fastqc.zip"
     shell:
         """
-        fastqc {input} -o results/fastqc_filtered
+        fastqc {input} -o results/fastqc/filtered
         """
