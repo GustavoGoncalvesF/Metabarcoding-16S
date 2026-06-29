@@ -30,9 +30,9 @@ rule all:
 
         # MULTIQC files
         "results/multiqc/raw/multiqc_report.html",
-        directory("results/multiqc/raw/multiqc_data"),
+        "results/multiqc/raw/multiqc_data",
         "results/multiqc/filtered/multiqc_report.html",
-        directory("results/multiqc/filtered/multiqc_data")
+        "results/multiqc/filtered/multiqc_data"
 
 ###################################################
 # 1. STATS RAW
