@@ -25,8 +25,8 @@ rule all:
         # FASTQC files
         expand("results/fastqc/raw/{sample}_{read}_fastqc.html", sample=SAMPLES, read=["R1", "R2"]),
         expand("results/fastqc/raw/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"]),
-        expand("results/fastqc/filtered/{sample}_{read}_fastqc.html", sample=SAMPLES, read=["R1", "R2"]),
-        expand("results/fastqc/filtered/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"]),
+        expand("results/fastqc/filtered/{sample}_{read}.final_fastqc.html", sample=SAMPLES, read=["R1", "R2"]),
+        expand("results/fastqc/filtered/{sample}_{read}.final_fastqc.zip", sample=SAMPLES, read=["R1", "R2"]),
 
         # MULTIQC files
         "results/multiqc/raw/multiqc_report.html",
@@ -160,8 +160,8 @@ rule fastqc_filtered:
     input:
         "results/trimmed/{sample}_{read}.final.fastq.gz"
     output:
-        html="results/fastqc/filtered/{sample}_{read}_fastqc.html",
-        zip="results/fastqc/filtered/{sample}_{read}_fastqc.zip"
+        html="results/fastqc/filtered/{sample}_{read}.final_fastqc.html",
+        zip="results/fastqc/filtered/{sample}_{read}.final_fastqc.zip"
     shell:
         """
         fastqc {input} -o results/fastqc/filtered
