@@ -114,7 +114,7 @@ rule length_filter:
         R1="results/trimmed/{sample}_R1.final.fastq.gz",
         R2="results/trimmed/{sample}_R2.final.fastq.gz"
     params:
-        minlen=config["cutadapt"]["min_length"]
+        minlen=config["cutadapt"]["min_length"],
         threads=config["cutadapt"]["threads"]
     shell:
         """
