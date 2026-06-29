@@ -5,7 +5,7 @@ from glob import glob
 
 RAW_DIR = config["raw_dir"]
 
-# detecta R1 automaticamente
+# Reading samples ID
 SAMPLES = sorted([
     os.path.basename(f).replace("_R1.fastq.gz", "")
     for f in glob(f"{RAW_DIR}/*_R1.fastq.gz")
@@ -18,21 +18,21 @@ rule all:
         "results/stats/seqkit_stats_post_cutadapt.txt",
         "results/stats/seqkit_stats_post_filter.txt",
 
-        # outputs finais
+        # trimmed files
         expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
         expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES),
-        expand("results/fastqc/raw/{sample}_{read}_fastqc.html",
-                sample=SAMPLES,
-                read=["R1", "R2"]),
-        expand("results/fastqc/raw/{sample}_{read}_fastqc.zip",
-                sample=SAMPLES,
-                read=["R1", "R2"]),
-        expand("results/fastqc/filtered/{sample}_{read}_fastqc.html",
-                sample=SAMPLES,
-                read=["R1", "R2"]),
-        expand("results/fastqc/filtered/{sample}_{read}_fastqc.zip",
-                sample=SAMPLES,
-                read=["R1", "R2"])
+
+        # FASTQC files
+        expand("results/fastqc/raw/{sample}_{read}_fastqc.html", sample=SAMPLES, read=["R1", "R2"]),
+        expand("results/fastqc/raw/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"]),
+        expand("results/fastqc/filtered/{sample}_{read}_fastqc.html", sample=SAMPLES, read=["R1", "R2"]),
+        expand("results/fastqc/filtered/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"]),
+
+        # MULTIQC files
+        "results/multiqc/raw/multiqc_report.html",
+        directory("results/multiqc/raw/multiqc_data"),
+        "results/multiqc/filtered/multiqc_report.html",
+        directory("results/multiqc/filtered/multiqc_data")
 
 ###################################################
 # 1. STATS RAW
@@ -53,7 +53,7 @@ rule seqkit_stats_raw:
 ###################################################
 rule fastqc_raw:
     input:
-        expand("{raw_dir}/{sample}_{read}.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES, read=["R1", "R2"])
+        f"{RAW_DIR}/{{sample}}_{{read}}.fastq.gz"
     output:
         html="results/fastqc/raw/{sample}_{read}_fastqc.html",
         zip="results/fastqc/raw/{sample}_{read}_fastqc.zip"
@@ -63,7 +63,22 @@ rule fastqc_raw:
         """
 
 ###################################################
-# 3. CUTADAPT (remove primers)
+# 3. RUN RAW MULTIQC
+###################################################
+rule multiqc_raw:
+    input:
+        expand("results/fastqc/raw/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"])
+    output:
+        html="results/multiqc/raw/multiqc_report.html"
+        data=directory("results/multiqc/raw/multiqc_data")
+    shell:
+        """
+        multiqc results/fastqc/raw -o results/multiqc/raw --force
+        """
+
+
+###################################################
+# 4. CUTADAPT (remove primers)
 ###################################################
 rule cutadapt:
     input:
@@ -89,7 +104,7 @@ rule cutadapt:
 
 
 ###################################################
-# 4. STATS POST CUTADAPT
+# 5. STATS POST CUTADAPT
 ###################################################
 rule seqkit_stats_cutadapt:
     input:
@@ -104,7 +119,7 @@ rule seqkit_stats_cutadapt:
 
 
 ###################################################
-# 5. LENGTH FILTER (via cutadapt)
+# 6. LENGTH FILTER (via cutadapt)
 ###################################################
 rule length_filter:
     input:
@@ -126,7 +141,7 @@ rule length_filter:
         """
 
 ###################################################
-# 6. STATS FINAL
+# 7. STATS FINAL
 ###################################################
 rule seqkit_stats_final:
     input:
@@ -139,7 +154,7 @@ rule seqkit_stats_final:
         seqkit stats {input.R1} {input.R2} > {output}
         """
 ###################################################
-# 7. RUN FILTERED FASTQC
+# 8. RUN FILTERED FASTQC
 ###################################################
 rule fastqc_filtered:
     input:
@@ -151,3 +166,18 @@ rule fastqc_filtered:
         """
         fastqc {input} -o results/fastqc/filtered
         """
+
+###################################################
+# 9. RUN FILTERED MULTIQC
+###################################################
+rule multiqc_filtered:
+    input:
+        expand("results/fastqc/filtered/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"])
+    output:
+        html="results/multiqc/filtered/multiqc_report.html"
+        data=directory("results/multiqc/filtered/multiqc_data")
+    shell:
+        """
+        multiqc results/fastqc/filtered -o results/multiqc/filtered --force
+        """
+
