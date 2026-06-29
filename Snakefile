@@ -69,7 +69,7 @@ rule multiqc_raw:
     input:
         expand("results/fastqc/raw/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"])
     output:
-        html="results/multiqc/raw/multiqc_report.html"
+        html="results/multiqc/raw/multiqc_report.html",
         data=directory("results/multiqc/raw/multiqc_data")
     shell:
         """
@@ -174,7 +174,7 @@ rule multiqc_filtered:
     input:
         expand("results/fastqc/filtered/{sample}_{read}_fastqc.zip", sample=SAMPLES, read=["R1", "R2"])
     output:
-        html="results/multiqc/filtered/multiqc_report.html"
+        html="results/multiqc/filtered/multiqc_report.html",
         data=directory("results/multiqc/filtered/multiqc_data")
     shell:
         """
