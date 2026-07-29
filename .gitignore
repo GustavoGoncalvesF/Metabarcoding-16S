@@ -38,7 +38,7 @@ data/
 *.csv
 *.tsv
 dada2_output/
-taxonomy/
+tax/
 phyloseq/
 
 ############################
@@ -69,3 +69,4 @@ snakemake.log
 ############################
 results/
 
+.Rproj.user
