@@ -2,7 +2,7 @@
 # Project: Coffe Rhizosphere Microbiome - 16S rRNA Metabarcoding
 # Script: 01_dada2_asv_inference.R
 # Autor: Gustavo Goncalves
-# Last edit: 16/07/2026
+# Last edit: 19/08/2026
 #
 # Description:
 # Script to processes filtered paired-end reads using the DADA2 pipeline to:
@@ -29,7 +29,7 @@ library(ggplot2); packageVersion("ggplot2")
 # Set up paths
 path <- "raw"; list.files(path)
 filtpath <- "filtered"
-resultspath <- "results"
+resultspath <- "results/objects"
 
 # Set up logfile
 logfile <- "dada2_logfile.log"
@@ -115,7 +115,7 @@ track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, 
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
 rownames(track) <- sample.names
 head(track)
-write.csv(track, file.path(resultspath, "read_tracking.csv")) # Save track table
+write.csv(track, file.path(dirname(resultspath), "read_tracking.csv")) # Save track table
 
 # Assign taxonomy
 log_message("Starting assignTaxonomy.")
@@ -125,13 +125,5 @@ rownames(taxa.print) <- NULL
 head(taxa.print)
 saveRDS(taxa, file.path(resultspath, "taxonomy.rds")) # Save taxonomy object
 log_message("Finished assignTaxonomy.")
-
-# Taxonomy summary
-colSums(!is.na(taxa)) # ASVs assigned in each level
-round(100 * colSums(!is.na(taxa)) / nrow(taxa),2)
-
-head(sort(table(taxa[, "Phylum"]), decreasing = TRUE), 15) # Main phylums
-head(sort(table(taxa[, "Class"]), decreasing=TRUE), 15) # Main classes
-head(sort(table(taxa[, "Genus"]), decreasing=TRUE), 20) # Main genus
 
 log_message("End of dada2_asv_inference script.")

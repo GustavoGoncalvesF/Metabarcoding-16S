@@ -11,9 +11,10 @@
 
 # Set up packages
 library(phyloseq); packageVersion("phyloseq")
+library(ggplot2); packageVersion("ggplot2")
 
 # Set up initial parameters
-path <- "results"; list.files(path) # Set path
+path <- "results/objects"; list.files(path) # Set path
 ps <- readRDS(file.path(path, "phyloseq_object.rds")) # Load phyloseq object
 theme_set(theme_bw()) # Set ggplot theme
 

@@ -5,7 +5,7 @@
 # Last edit: 29/07/2026
 #
 # Description:
-# Script to create a phyloseq object
+# Script to create and adjust a phyloseq object.
 #
 #####################################################################################
 
@@ -13,7 +13,7 @@
 library(phyloseq); packageVersion("phyloseq")
 
 # Set up paths
-path <- "results"; list.files(path)
+path <- "results/objects"; list.files(path)
 
 # Load ASVs and taxonomy matrix
 seqtab.nochim <- readRDS(file.path(path, "seqtab-nochim.rds"))

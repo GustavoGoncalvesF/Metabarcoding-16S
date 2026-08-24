@@ -7,12 +7,12 @@
 # Description:
 #    Script to load up objects saved previously on "path".
 #
-# Current path: ~/results
+# Current path: ~/results/objects
 #
 #####################################################################################
 
 # Set up path
-path <- "results"; list.files(path)
+path <- "results/objects"; list.files(path)
 
 # Loads
 out <- readRDS(file.path(path, "filterAndTrim_out.rds"))
@@ -22,7 +22,7 @@ dadaFs <- readRDS(file.path(path, "dadaFs.rds"))
 dadaRs <- readRDS(file.path(path, "dadaFs.rds"))
 seqtab <- readRDS(file.path(path, "seqtab.rds"))
 seqtab.nochim <- readRDS(file.path(path, "seqtab-nochim.rds"))
-track <- read.csv(file.path(path, "read_tracking.csv"),row.names = 1)
+track <- read.csv(file.path(dirname(path), "read_tracking.csv"),row.names = 1)
 taxa <- readRDS(file.path(path, "taxonomy.rds"))
 ps <- readRDS(file.path(path, "phyloseq_object.rds"))
 
