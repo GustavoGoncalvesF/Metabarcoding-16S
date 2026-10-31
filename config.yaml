@@ -8,7 +8,7 @@ cutadapt:
   min_length: 150
   threads: 1
 
-  bbduk:
+bbduk:
   reference: "homopolymers30.fasta"
   k: 30
   threads: 1
