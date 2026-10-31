@@ -6,7 +6,7 @@ from glob import glob
 RAW_DIR = config["raw_dir"]
 
 # Reading samples ID
-SAMPLES = sorted([
+SAMPLES = sorted([  
     os.path.basename(f).replace("_R1.fastq.gz", "")
     for f in glob(f"{RAW_DIR}/*_R1.fastq.gz")
 ])
@@ -117,31 +117,60 @@ rule seqkit_stats_cutadapt:
         seqkit stats {input.R1} {input.R2} > {output}
         """
 
-
 ###################################################
-# 6. LENGTH FILTER (via cutadapt)
+# 6. CUTADAPT NEXTERA ADAPTER REMOVAL
 ###################################################
-rule length_filter:
+rule cutadapt_nextera:
     input:
         R1="results/trimmed/{sample}_R1.cut.fastq.gz",
         R2="results/trimmed/{sample}_R2.cut.fastq.gz"
     output:
-        R1="results/trimmed/{sample}_R1.final.fastq.gz",
-        R2="results/trimmed/{sample}_R2.final.fastq.gz"
+        R1="results/trimmed/{sample}_R1.nextera.fastq.gz",
+        R2="results/trimmed/{sample}_R2.nextera.fastq.gz",
+        log="results/logs/cutadapt_nextera/{sample}.txt"
     params:
-        minlen=config["cutadapt"]["min_length"],
-        threads=config["cutadapt"]["threads"]
+        adapter=config["cutadapt"]["nextera_adapter"]
+    threads: 1
     shell:
         """
+        mkdir -p results/logs/cutadapt_nextera
+
         cutadapt \
-        -j {threads} \
-        --minimum-length {params.minlen} \
-        -o {output.R1} -p {output.R2} \
-        {input.R1} {input.R2}
+          -j {threads} \
+          -a {params.adapter} \
+          -A {params.adapter} \
+          -O 10 \
+          -o {output.R1} \
+          -p {output.R2} \
+          {input.R1} {input.R2} \
+          > {output.log}
         """
 
 ###################################################
-# 7. STATS FINAL
+# 7. LENGTH FILTER
+###################################################
+rule length_filter:
+    input:
+        R1="results/trimmed/{sample}_R1.nextera.fastq.gz",
+        R2="results/trimmed/{sample}_R2.nextera.fastq.gz"
+    output:
+        R1="results/trimmed/{sample}_R1.final.fastq.gz",
+        R2="results/trimmed/{sample}_R2.final.fastq.gz"
+    params:
+        minlen=config["cutadapt"]["min_length"]
+    threads: 1
+    shell:
+        """
+        cutadapt \
+          -j {threads} \
+          --minimum-length {params.minlen} \
+          -o {output.R1} \
+          -p {output.R2} \
+          {input.R1} {input.R2}
+        """
+
+###################################################
+# 8. STATS FINAL
 ###################################################
 rule seqkit_stats_final:
     input:

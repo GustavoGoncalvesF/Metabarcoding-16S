@@ -5,5 +5,6 @@ trimmed_dir: "results/trimmed"
 cutadapt:
   fwd_primer: CCTACGGGNGGCWGCAG
   rev_primer: GACTACHVGGGTATCTAATCC
+  nextera_adapter: CTGTCTCTTATACACATCT
   min_length: 150
   threads: 1
