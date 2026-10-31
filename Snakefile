@@ -1,3 +1,4 @@
+
 configfile: "config.yaml"
 
 import os
@@ -6,7 +7,7 @@ from glob import glob
 RAW_DIR = config["raw_dir"]
 
 # Reading samples ID
-SAMPLES = sorted([  
+SAMPLES = sorted([
     os.path.basename(f).replace("_R1.fastq.gz", "")
     for f in glob(f"{RAW_DIR}/*_R1.fastq.gz")
 ])
@@ -16,11 +17,15 @@ rule all:
         # stats
         "results/stats/seqkit_stats_raw.txt",
         "results/stats/seqkit_stats_post_cutadapt.txt",
+        "results/stats/seqkit_stats_post_bbduk.txt",
         "results/stats/seqkit_stats_post_filter.txt",
 
         # trimmed files
         expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
         expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES),
+
+        # BBDuk logs
+        expand("results/logs/bbduk/{sample}.log", sample=SAMPLES),
 
         # FASTQC files
         expand("results/fastqc/raw/{sample}_{read}_fastqc.html", sample=SAMPLES, read=["R1", "R2"]),
@@ -34,19 +39,21 @@ rule all:
         "results/multiqc/filtered/multiqc_report.html",
         "results/multiqc/filtered/multiqc_data"
 
+
 ###################################################
 # 1. STATS RAW
 ###################################################
 rule seqkit_stats_raw:
     input:
-        R1 = expand("{raw_dir}/{sample}_R1.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES),
-        R2 = expand("{raw_dir}/{sample}_R2.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES)
+        R1=expand("{raw_dir}/{sample}_R1.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES),
+        R2=expand("{raw_dir}/{sample}_R2.fastq.gz", raw_dir=RAW_DIR, sample=SAMPLES)
     output:
-           "results/stats/seqkit_stats_raw.txt"
+        "results/stats/seqkit_stats_raw.txt"
     shell:
         """
         seqkit stats {input.R1} {input.R2} > {output}
         """
+
 
 ###################################################
 # 2. RUN RAW FASTQC
@@ -61,6 +68,7 @@ rule fastqc_raw:
         """
         fastqc {input} -o results/fastqc/raw
         """
+
 
 ###################################################
 # 3. RUN RAW MULTIQC
@@ -89,8 +97,8 @@ rule cutadapt:
         R2="results/trimmed/{sample}_R2.cut.fastq.gz"
     params:
         fwd=config["cutadapt"]["fwd_primer"],
-        rev=config["cutadapt"]["rev_primer"],
-        threads=config["cutadapt"]["threads"]
+        rev=config["cutadapt"]["rev_primer"]
+    threads: config["cutadapt"]["threads"]
     shell:
         """
         cutadapt \
@@ -108,8 +116,8 @@ rule cutadapt:
 ###################################################
 rule seqkit_stats_cutadapt:
     input:
-        R1 = expand("results/trimmed/{sample}_R1.cut.fastq.gz", sample=SAMPLES),
-        R2 = expand("results/trimmed/{sample}_R2.cut.fastq.gz", sample=SAMPLES)
+        R1=expand("results/trimmed/{sample}_R1.cut.fastq.gz", sample=SAMPLES),
+        R2=expand("results/trimmed/{sample}_R2.cut.fastq.gz", sample=SAMPLES)
     output:
         "results/stats/seqkit_stats_post_cutadapt.txt"
     shell:
@@ -117,74 +125,97 @@ rule seqkit_stats_cutadapt:
         seqkit stats {input.R1} {input.R2} > {output}
         """
 
+
 ###################################################
-# 6. CUTADAPT NEXTERA ADAPTER REMOVAL
+# 6. BBDUK (remove Poly-C/G homopolymers)
 ###################################################
-rule cutadapt_nextera:
+rule bbduk_homopolymer:
     input:
         R1="results/trimmed/{sample}_R1.cut.fastq.gz",
-        R2="results/trimmed/{sample}_R2.cut.fastq.gz"
+        R2="results/trimmed/{sample}_R2.cut.fastq.gz",
+        ref=config["bbduk"]["reference"]
     output:
-        R1="results/trimmed/{sample}_R1.nextera.fastq.gz",
-        R2="results/trimmed/{sample}_R2.nextera.fastq.gz"
+        R1="results/trimmed/{sample}_R1.poly.fastq.gz",
+        R2="results/trimmed/{sample}_R2.poly.fastq.gz"
     log:
-        "results/logs/cutadapt_nextera/{sample}.txt"
+        "results/logs/bbduk/{sample}.log"
     params:
-        adapter=config["cutadapt"]["nextera_adapter"]
-    threads: config["cutadapt"]["threads"]
+        k=config["bbduk"]["k"]
+    threads: config["bbduk"]["threads"]
     shell:
         """
-        mkdir -p results/logs/cutadapt_nextera
+        mkdir -p results/logs/bbduk
 
-        cutadapt \
-          -j {threads} \
-          -a {params.adapter} \
-          -A {params.adapter} \
-          -O 10 \
-          -o {output.R1} \
-          -p {output.R2} \
-          {input.R1} {input.R2} \
-          > {log} 2>&1
+        bbduk.sh \
+          in1={input.R1} \
+          in2={input.R2} \
+          out1={output.R1} \
+          out2={output.R2} \
+          ref={input.ref} \
+          k={params.k} \
+          hdist=0 \
+          mm=f \
+          rcomp=f \
+          threads={threads} \
+          2> {log}
         """
 
+
 ###################################################
-# 7. LENGTH FILTER
+# 7. STATS POST BBDUK
+###################################################
+rule seqkit_stats_bbduk:
+    input:
+        R1=expand("results/trimmed/{sample}_R1.poly.fastq.gz", sample=SAMPLES),
+        R2=expand("results/trimmed/{sample}_R2.poly.fastq.gz", sample=SAMPLES)
+    output:
+        "results/stats/seqkit_stats_post_bbduk.txt"
+    shell:
+        """
+        seqkit stats {input.R1} {input.R2} > {output}
+        """
+
+
+###################################################
+# 8. LENGTH FILTER
 ###################################################
 rule length_filter:
     input:
-        R1="results/trimmed/{sample}_R1.nextera.fastq.gz",
-        R2="results/trimmed/{sample}_R2.nextera.fastq.gz"
+        R1="results/trimmed/{sample}_R1.poly.fastq.gz",
+        R2="results/trimmed/{sample}_R2.poly.fastq.gz"
     output:
         R1="results/trimmed/{sample}_R1.final.fastq.gz",
         R2="results/trimmed/{sample}_R2.final.fastq.gz"
     params:
         minlen=config["cutadapt"]["min_length"]
-    threads: 1
+    threads: config["cutadapt"]["threads"]
     shell:
         """
         cutadapt \
-          -j {threads} \
-          --minimum-length {params.minlen} \
-          -o {output.R1} \
-          -p {output.R2} \
-          {input.R1} {input.R2}
+        -j {threads} \
+        --minimum-length {params.minlen} \
+        -o {output.R1} -p {output.R2} \
+        {input.R1} {input.R2}
         """
 
+
 ###################################################
-# 8. STATS FINAL
+# 9. STATS FINAL
 ###################################################
 rule seqkit_stats_final:
     input:
-        R1 = expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
-        R2 = expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES)
+        R1=expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
+        R2=expand("results/trimmed/{sample}_R2.final.fastq.gz", sample=SAMPLES)
     output:
         "results/stats/seqkit_stats_post_filter.txt"
     shell:
         """
         seqkit stats {input.R1} {input.R2} > {output}
         """
+
+
 ###################################################
-# 8. RUN FILTERED FASTQC
+# 10. RUN FILTERED FASTQC
 ###################################################
 rule fastqc_filtered:
     input:
@@ -197,8 +228,9 @@ rule fastqc_filtered:
         fastqc {input} -o results/fastqc/filtered
         """
 
+
 ###################################################
-# 9. RUN FILTERED MULTIQC
+# 11. RUN FILTERED MULTIQC
 ###################################################
 rule multiqc_filtered:
     input:
@@ -210,4 +242,3 @@ rule multiqc_filtered:
         """
         multiqc results/fastqc/filtered -o results/multiqc/filtered --force
         """
-
