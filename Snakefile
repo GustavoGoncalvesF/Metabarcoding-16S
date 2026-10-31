@@ -126,11 +126,12 @@ rule cutadapt_nextera:
         R2="results/trimmed/{sample}_R2.cut.fastq.gz"
     output:
         R1="results/trimmed/{sample}_R1.nextera.fastq.gz",
-        R2="results/trimmed/{sample}_R2.nextera.fastq.gz",
-        log="results/logs/cutadapt_nextera/{sample}.txt"
+        R2="results/trimmed/{sample}_R2.nextera.fastq.gz"
+    log:
+        "results/logs/cutadapt_nextera/{sample}.txt"
     params:
         adapter=config["cutadapt"]["nextera_adapter"]
-    threads: 1
+    threads: config["cutadapt"]["threads"]
     shell:
         """
         mkdir -p results/logs/cutadapt_nextera
@@ -143,7 +144,7 @@ rule cutadapt_nextera:
           -o {output.R1} \
           -p {output.R2} \
           {input.R1} {input.R2} \
-          > {output.log}
+          > {log} 2>&1
         """
 
 ###################################################
