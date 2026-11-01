@@ -73,7 +73,10 @@ stage_data = {
 # Sample IDs
 samples = sorted(
     {sample for sample, read in stage_data["01_Raw"]},
-    key=lambda s: (int(re.match(r"\d+", s).group()), s)
+    key=lambda s: [
+        int(part) if part.isdigit() else part.lower()
+        for part in re.split(r"(\d+)", s)
+    ]
 )
 
 # Validate sample completeness and R1/R2 synchronisation
