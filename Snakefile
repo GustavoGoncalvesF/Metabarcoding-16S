@@ -19,6 +19,7 @@ rule all:
         "results/stats/seqkit_stats_post_cutadapt.txt",
         "results/stats/seqkit_stats_post_bbduk.txt",
         "results/stats/seqkit_stats_post_filter.txt",
+        "results/stats/seqkit_summary.xlsx",
 
         # trimmed files
         expand("results/trimmed/{sample}_R1.final.fastq.gz", sample=SAMPLES),
@@ -241,4 +242,25 @@ rule multiqc_filtered:
     shell:
         """
         multiqc results/fastqc/filtered -o results/multiqc/filtered --force
+        """
+
+###################################################
+# 12. SEQKIT SUMMARY EXCEL REPORT
+###################################################
+rule seqkit_excel_report:
+    input:
+        raw="results/stats/seqkit_stats_raw.txt",
+        cut="results/stats/seqkit_stats_post_cutadapt.txt",
+        poly="results/stats/seqkit_stats_post_bbduk.txt",
+        final="results/stats/seqkit_stats_post_filter.txt"
+    output:
+        "results/stats/seqkit_summary.xlsx"
+    shell:
+        """
+        python scripts/seqkit_to_excel.py \
+          {input.raw} \
+          {input.cut} \
+          {input.poly} \
+          {input.final} \
+          {output}
         """
