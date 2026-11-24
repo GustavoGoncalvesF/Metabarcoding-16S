@@ -2,11 +2,15 @@
 # Project: Alopecia Microbiome - 16S rRNA Metabarcoding
 # Script: 05_beta_diversity.R
 # Author: Gustavo Goncalves
-# Last edit: 08/10/2026
+# Last edit: 11/11/2026
 #
 # Description:
-# Exploratory beta diversity analysis of scalp microbiome samples using
-# Bray-Curtis dissimilarity, PCoA, PERMANOVA, and dispersion tests.
+# Exploratory beta diversity analysis using Bray-Curtis dissimilarity,
+# PCoA, paired PERMANOVA, and multivariate dispersion tests.
+#
+# Sensitivity analysis:
+# - All samples
+# - Without patient 16 (samples 16A and 16B)
 #
 #####################################################################################
 
@@ -17,6 +21,7 @@ source("projects/alopecia/config.R")
 library(phyloseq); packageVersion("phyloseq")
 library(ggplot2); packageVersion("ggplot2")
 library(vegan); packageVersion("vegan")
+library(permute)
 
 # Load phyloseq object
 ps <- readRDS(
@@ -29,137 +34,293 @@ theme_set(theme_bw())
 # Set random seed for reproducibility
 set.seed(123)
 
+# Create output directory
+beta_path <- file.path(results_path, "beta_diversity")
+dir.create(beta_path, recursive = TRUE, showWarnings = FALSE)
+
 
 #####################################################################################
 # Prepare data
 #####################################################################################
 
 # Extract sample metadata
-metadata <- data.frame(
-  sample_data(ps)
+metadata <- data.frame(sample_data(ps))
+
+# Experimental variables
+metadata$Patient <- factor(metadata$Patient)
+
+metadata$Timepoint <- factor(
+  metadata$Timepoint,
+  levels = c("Before", "After")
 )
 
-# Transform counts to relative abundance
-ps.rel <- transform_sample_counts(
+# Check sample alignment
+stopifnot(
+  identical(rownames(metadata), sample_names(ps)),
+  !anyNA(metadata$Patient),
+  !anyNA(metadata$Timepoint)
+)
+
+# Confirm paired design
+print(table(metadata$Timepoint))
+print(table(metadata$Patient, metadata$Timepoint))
+
+
+#####################################################################################
+# Beta diversity analysis function
+#####################################################################################
+
+run_beta_diversity <- function(ps, output_path) {
+
+  dir.create(
+    output_path,
+    recursive = TRUE,
+    showWarnings = FALSE
+  )
+
+  # Remove ASVs absent from this subset
+  ps <- prune_taxa(taxa_sums(ps) > 0, ps)
+
+  # Extract metadata
+  metadata <- data.frame(sample_data(ps))
+
+  metadata$Patient <- factor(metadata$Patient)
+
+  metadata$Timepoint <- factor(
+    metadata$Timepoint,
+    levels = c("Before", "After")
+  )
+
+  # Confirm complete patient pairs
+  pair_table <- table(
+    metadata$Patient,
+    metadata$Timepoint
+  )
+
+  stopifnot(all(pair_table == 1))
+
+  # Transform counts to relative abundance
+  ps.rel <- transform_sample_counts(
+    ps,
+    function(x) x / sum(x)
+  )
+
+
+  ###################################################################################
+  # Bray-Curtis dissimilarity
+  ###################################################################################
+
+  bray <- phyloseq::distance(
+    physeq = ps.rel,
+    method = "bray"
+  )
+
+  # Align metadata with distance matrix
+  metadata <- metadata[
+    attr(bray, "Labels"),
+    ,
+    drop = FALSE
+  ]
+
+  saveRDS(
+    bray,
+    file.path(output_path, "bray_curtis.rds")
+  )
+
+
+  ###################################################################################
+  # Principal Coordinates Analysis (PCoA)
+  ###################################################################################
+
+  ord.pcoa <- ordinate(
+    ps.rel,
+    method = "PCoA",
+    distance = bray
+  )
+
+  # PCoA by Timepoint
+  p1 <- plot_ordination(
+    ps.rel,
+    ord.pcoa,
+    color = "Timepoint"
+  ) +
+    geom_point(size = 3) +
+    labs(
+      title = "PCoA - Bray-Curtis",
+      color = "Timepoint"
+    )
+
+  print(p1)
+
+  ggsave(
+    file.path(output_path, "01_pcoa_timepoint.png"),
+    plot = p1,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
+
+
+  # PCoA with paired samples connected
+  p2 <- plot_ordination(
+    ps.rel,
+    ord.pcoa,
+    color = "Timepoint"
+  ) +
+    geom_line(
+      aes(group = Patient),
+      color = "grey60",
+      alpha = 0.6
+    ) +
+    geom_point(size = 3) +
+    labs(
+      title = "PCoA - Paired samples",
+      color = "Timepoint"
+    )
+
+  print(p2)
+
+  ggsave(
+    file.path(output_path, "02_pcoa_paired.png"),
+    plot = p2,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
+
+
+  ###################################################################################
+  # PERMANOVA - Paired design
+  ###################################################################################
+
+  # Restrict permutations to within-patient swaps
+  permutation_design <- permute::how(
+    nperm = 999,
+    blocks = metadata$Patient
+  )
+
+  # Adjust for patient identity
+  adonis.result <- adonis2(
+    bray ~ Patient + Timepoint,
+    data = metadata,
+    permutations = permutation_design,
+    by = "margin"
+  )
+
+  # Extract Timepoint effect
+  adonis.timepoint <- adonis.result[
+    "Timepoint",
+    ,
+    drop = FALSE
+  ]
+
+  print(adonis.timepoint)
+
+  write.csv(
+    as.data.frame(adonis.timepoint),
+    file.path(output_path, "03_permanova_timepoint.csv")
+  )
+
+
+  ###################################################################################
+  # Multivariate dispersion
+  ###################################################################################
+
+  disp.timepoint <- betadisper(
+    bray,
+    metadata$Timepoint
+  )
+
+  dispersion.test <- permutest(
+    disp.timepoint,
+    permutations = 999
+  )
+
+  print(dispersion.test)
+
+  capture.output(
+    dispersion.test,
+    file = file.path(
+      output_path,
+      "04_dispersion_timepoint.txt"
+    )
+  )
+
+  png(
+    file.path(output_path, "05_dispersion_timepoint.png"),
+    width = 2400,
+    height = 1800,
+    res = 300
+  )
+
+  boxplot(
+    disp.timepoint,
+    xlab = "Timepoint",
+    ylab = "Distance to group median",
+    main = "Multivariate dispersion"
+  )
+
+  dev.off()
+
+
+  ###################################################################################
+  # Return results
+  ###################################################################################
+
+  invisible(list(
+    bray = bray,
+    ordination = ord.pcoa,
+    permanova = adonis.timepoint,
+    dispersion = dispersion.test
+  ))
+}
+
+
+#####################################################################################
+# Main analysis - All samples
+#####################################################################################
+
+beta_all <- run_beta_diversity(
   ps,
-  function(x) x / sum(x)
+  file.path(beta_path, "all_samples")
 )
 
 
 #####################################################################################
-# Bray-Curtis dissimilarity
+# Sensitivity analysis - Without patient 16
 #####################################################################################
 
-bray <- phyloseq::distance(
-  physeq = ps.rel,
-  method = "bray"
+# Remove the complete patient pair
+ps.no16 <- subset_samples(
+  ps,
+  !(Patient %in% c("16"))
 )
 
-
-#####################################################################################
-# Principal Coordinates Analysis (PCoA)
-#####################################################################################
-
-# Calculate PCoA
-ord.pcoa <- ordinate(
-  ps.rel,
-  method = "PCoA",
-  distance = bray
+ps.no16 <- prune_taxa(
+  taxa_sums(ps.no16) > 0,
+  ps.no16
 )
 
-# PCoA by Treatment
-plot_ordination(
-  ps.rel,
-  ord.pcoa,
-  color = "Treatment"
-) +
-  geom_point(size = 3)
-
-
-# PCoA by AlopeciaGrade
-plot_ordination(
-  ps.rel,
-  ord.pcoa,
-  color = "AlopeciaGrade"
-) +
-  geom_point(size = 3)
-
-
-# PCoA by Age
-plot_ordination(
-  ps.rel,
-  ord.pcoa,
-  color = "Age"
-) +
-  geom_point(size = 3)
+beta_no16 <- run_beta_diversity(
+  ps.no16,
+  file.path(beta_path, "without_patient16")
+)
 
 
 #####################################################################################
-# PERMANOVA
+# Save analysis objects
 #####################################################################################
 
-# Treatment effect
-adonis.treatment <- adonis2(
-  bray ~ Treatment,
-  data = metadata,
-  permutations = 999
+saveRDS(
+  beta_all,
+  file.path(beta_path, "beta_all_results.rds")
 )
 
-adonis.treatment
-
-
-# Alopecia severity
-# Exclude samples without AlopeciaGrade
-valid.grade <- !is.na(metadata$AlopeciaGrade)
-
-bray.grade <- as.dist(
-  as.matrix(bray)[valid.grade, valid.grade]
+saveRDS(
+  beta_no16,
+  file.path(beta_path, "beta_without_patient16_results.rds")
 )
-
-metadata.grade <- metadata[
-  valid.grade,
-  ,
-  drop = FALSE
-]
-
-adonis.grade <- adonis2(
-  bray.grade ~ AlopeciaGrade,
-  data = metadata.grade,
-  permutations = 999
-)
-
-adonis.grade
-
-
-# Age
-adonis.age <- adonis2(
-  bray ~ Age,
-  data = metadata,
-  permutations = 999
-)
-
-adonis.age
-
 
 #####################################################################################
-# Multivariate dispersion
+# End
 #####################################################################################
-
-# Test homogeneity of dispersion between treatment groups
-disp.treatment <- betadisper(
-  bray,
-  metadata$Treatment
-)
-
-# Permutation test
-permutest(
-  disp.treatment,
-  permutations = 999
-)
-
-# Visualize dispersion
-boxplot(
-  disp.treatment,
-  xlab = "Treatment",
-  ylab = "Distance to group median"
-)

@@ -2,7 +2,7 @@
 # Project: 16S rRNA Metabarcoding
 # Script: 02_dada2_QC.R
 # Author: Gustavo Goncalves
-# Last edit: 07/10/2026
+# Last edit: 03/11/2026
 #
 # Description:
 # Quality control report for 01_dada2_asv_inference.R
@@ -104,14 +104,28 @@ family <- sort(
 #####################################################################################
 
 # Read retention
-ggplot(
+p_retention <- ggplot(
   track,
   aes(y = Retention)
 ) +
-  geom_boxplot()
+  geom_boxplot() +
+  labs(
+    y = "Read retention (%)",
+    x = NULL
+  )
+
+print(p_retention)
+
+ggsave(
+  file.path(qc_path, "01_read_retention.png"),
+  plot = p_retention,
+  width = 6,
+  height = 5,
+  dpi = 300
+)
 
 # ASVs per sample
-ggplot(
+p_asvs <- ggplot(
   data.frame(
     Sample = names(asvs),
     ASVs = asvs
@@ -119,24 +133,74 @@ ggplot(
   aes(Sample, ASVs)
 ) +
   geom_col() +
-  coord_flip()
+  coord_flip() +
+  labs(
+    x = "Sample",
+    y = "Number of ASVs"
+  )
+
+print(p_asvs)
+
+ggsave(
+  file.path(qc_path, "02_asvs_per_sample.png"),
+  plot = p_asvs,
+  width = 8,
+  height = 10,
+  dpi = 300
+)
 
 # ASV abundance
 hist(
   log10(abundance),
-  breaks = 50
+  breaks = 50,
+  main = "ASV abundance distribution",
+  xlab = "Log10 ASV abundance"
 )
+
+png(
+  file.path(qc_path, "03_asv_abundance.png"),
+  width = 1800,
+  height = 1500,
+  res = 300
+)
+
+hist(
+  log10(abundance),
+  breaks = 50,
+  main = "ASV abundance distribution",
+  xlab = "Log10 ASV abundance"
+)
+
+dev.off()
 
 # ASV lengths
 hist(
   lengths,
-  breaks = 200
+  breaks = 200,
+  main = "ASV length distribution",
+  xlab = "ASV length (bp)"
 )
+
+png(
+  file.path(qc_path, "04_asv_lengths.png"),
+  width = 1800,
+  height = 1500,
+  res = 300
+)
+
+hist(
+  lengths,
+  breaks = 200,
+  main = "ASV length distribution",
+  xlab = "ASV length (bp)"
+)
+
+dev.off()
 
 # Phyla with highest number of ASVs
 phylum_top20 <- head(phylum, 20)
 
-ggplot(
+p_phylum <- ggplot(
   data.frame(
     Phylum = names(phylum_top20),
     Count = as.numeric(phylum_top20)
@@ -153,10 +217,20 @@ ggplot(
     y = "Number of ASVs"
   )
 
+print(p_phylum)
+
+ggsave(
+  file.path(qc_path, "05_top20_phyla.png"),
+  plot = p_phylum,
+  width = 9,
+  height = 7,
+  dpi = 300
+)
+
 # Families with highest number of ASVs
 family_top20 <- head(family, 20)
 
-ggplot(
+p_family <- ggplot(
   data.frame(
     Family = names(family_top20),
     Count = as.numeric(family_top20)
@@ -173,6 +247,15 @@ ggplot(
     y = "Number of ASVs"
   )
 
+print(p_family)
+
+ggsave(
+  file.path(qc_path, "06_top20_families.png"),
+  plot = p_family,
+  width = 9,
+  height = 7,
+  dpi = 300
+)
 
 #####################################################################################
 # Detect possible problematic samples

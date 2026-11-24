@@ -25,6 +25,7 @@
 
 # Set up packages
 library(dada2); packageVersion("dada2")
+library(openxlsx); packageVersion("openxlsx")
 
 # Create directories
 dir.create(filtered_path, recursive = TRUE, showWarnings = FALSE)
@@ -211,33 +212,17 @@ saveRDS(
 
 log_message("Finished removeBimeraDenovo.")
 
-# Track reads throught the pipeline
-getN <- function(x) sum(getUniques(x))
+# Read tracking
+source("pipeline/dada2_read_tracking.R")
 
-track <- cbind(
-  out,
-  sapply(dadaFs, getN),
-  sapply(dadaRs, getN),
-  sapply(mergers, getN),
-  rowSums(seqtab.nochim)
-)
-
-colnames(track) <- c(
-  "input",
-  "filtered",
-  "denoisedF",
-  "denoisedR",
-  "merged",
-  "nonchim"
-)
-
-rownames(track) <- sample.names
-
-head(track)
-
-write.csv(
-  track,
-  file.path(results_path, "read_tracking.csv")
+tracking <- generate_read_tracking(
+  out = out,
+  dadaFs = dadaFs,
+  dadaRs = dadaRs,
+  mergers = mergers,
+  seqtab.nochim = seqtab.nochim,
+  sample.names = sample.names,
+  results_path = results_path
 )
 
 # Assign taxonomy

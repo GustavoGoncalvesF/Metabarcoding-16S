@@ -31,7 +31,7 @@ rm_phix  <- TRUE
 truncLen <- c(0, 0)
 
 # Computational resources
-n_threads <- 18  # On Mac Pro Mid, set max 24 threads
+n_threads <- 2  # On Mac Pro Mid, set max 24 threads
 
 # Taxonomy
 taxonomy_database <- file.path(

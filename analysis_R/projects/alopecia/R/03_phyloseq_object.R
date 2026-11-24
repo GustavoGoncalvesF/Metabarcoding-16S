@@ -29,12 +29,13 @@ taxa <- readRDS(
 )
 
 # Load sample metadata
-metadata <- read.csv(
-  file.path(project_path, "metadata", "sample_data.csv"),
-  row.names = 1,
-  stringsAsFactors = FALSE,
-  na.strings = c("", "NA")
+metadata <- as.data.frame(
+  readxl::read_excel(
+    file.path(project_path, "metadata", "sample_data.xlsx")
+  )
 )
+
+rownames(metadata) <- metadata$SampleID
 
 # --------------------------------------------------
 # Validate sample and ASV identifiers
@@ -60,6 +61,20 @@ if (!identical(colnames(seqtab.nochim), rownames(taxa))) {
 # --------------------------------------------------
 # Prepare sample metadata
 # --------------------------------------------------
+# Patient identification
+metadata$Patient <- factor(
+  sub("[AB]$", "", metadata$SampleID)
+)
+
+# Sampling timepoint
+metadata$Timepoint <- factor(
+  ifelse(
+    grepl("A$", metadata$SampleID),
+    "Before",
+    "After"
+  ),
+  levels = c("Before", "After")
+)
 
 # Numeric variables
 metadata$Age <- as.numeric(metadata$Age)
@@ -73,7 +88,7 @@ metadata$Treatment <- factor(
 # Alopecia severity
 metadata$AlopeciaGrade <- factor(
   metadata$AlopeciaGrade,
-  levels = c(1, 2, 3),
+  levels = c(0, 1, 2, 3),
   ordered = TRUE
 )
 
@@ -104,7 +119,6 @@ metadata$DietQuality <- factor(
   levels = c("Poor", "Fair", "Good_and_balanced"),
   ordered = TRUE
 )
-
 # Binary variables
 binary.variables <- c(
   "WeakOrSheddingHair",
@@ -190,4 +204,3 @@ saveRDS(
 ps
 nsamples(ps)
 ntaxa(ps)
-
